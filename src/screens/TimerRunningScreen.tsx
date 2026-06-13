@@ -6,13 +6,10 @@ import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 type TimerRunningProps = {
   navigation: any;
   rate: string;
-  startTime: number | null;
-  finishTime: number | null;
   pauseTimer: () => void;
   resumeTimer: () => void;
   totalSeconds: number;
   remaining: number;
-  setRemaining: (v: number) => void;
   isPaused: boolean;
   resetAll: () => void;
 };
@@ -20,28 +17,23 @@ type TimerRunningProps = {
 export default function TimerRunningScreen({
   navigation,
   rate,
-  startTime,
-  finishTime,
   pauseTimer,
   resumeTimer,
   totalSeconds,
   remaining,
-  setRemaining,
   isPaused,
   resetAll,
 }: TimerRunningProps) {
+    // Time data
     const remainingSeconds = remaining;
-
     const hrs = Math.floor(remainingSeconds / 3600);
     const mins = Math.floor((remainingSeconds % 3600) / 60);
     const secs = (remainingSeconds % 60);
-
-    // Earnings calculation restored
+    // Earnings data
     const earningsPerSecond = Number(rate) / 3600;
     const elapsedSeconds = Math.max(0, totalSeconds - remainingSeconds);
     const earned = (elapsedSeconds * earningsPerSecond).toFixed(2);
-
-
+    // Toggle Pause
     const togglePause = () => {
         if (!isPaused) pauseTimer();
         else resumeTimer();

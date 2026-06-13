@@ -1,16 +1,17 @@
+import { AppState, Alert, Vibration } from "react-native";
 import { useState, useRef, useEffect } from "react";
 import { Animated } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import notifee, { TriggerType, TimestampTrigger } from '@notifee/react-native';
 
 import RateScreen from "./src/screens/RateScreen";
 import TimerSetupScreen from "./src/screens/TimerSetupScreen";
 import TimerRunningScreen from "./src/screens/TimerRunningScreen";
-
 const Stack = createNativeStackNavigator();
 
 export default function App() {
-  // Fade animation
+  // App startup fade animation
   const fadeAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -20,57 +21,106 @@ export default function App() {
     }).start();
   }, []);
 
-  // Rate
+  // Setup notification channel
+  useEffect(() => {
+    async function setup() {
+      await notifee.requestPermission();
+      await notifee.createChannel({
+        id: 'timer',
+        name: 'Timer Notifications',
+      });
+    }
+    setup();
+  }, []);
+
+  // Track App state foreground or background
+  const [appState, setAppState] = useState(AppState.currentState);
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", next => {
+      setAppState(next);
+    });
+    return () => sub.remove();
+  }, []);
+  
+  // Cancel scheduled notifications if App state actice
+  useEffect(() => {
+    if (appState === "active") {
+      notifee.cancelTriggerNotifications();
+      notifee.cancelAllNotifications();
+    }
+  }, [appState]);
+
+  // Rate input
   const [rate, setRate] = useState("");
-  // Setup values
+  // Timer input
   const [hours, setHours] = useState("00");
   const [minutes, setMinutes] = useState("00");
   const [seconds, setSeconds] = useState("00");
-
   // Timer engine state
-  const [startTime, setStartTime] = useState<number | null>(null);
   const [finishTime, setFinishTime] = useState<number | null>(null);
   const [totalSeconds, setTotalSeconds] = useState(0);
   const [remaining, setRemaining] = useState(0);
-
   // Pause/resume
   const [isPaused, setIsPaused] = useState(false);
   const [pausedAt, setPausedAt] = useState<number | null>(null);
+  // Total Earned
+  const [earnedFinish, setEarnedFinish] = useState('0.00');
 
 
-  // -----------------------------
-  // ⭐ START TIMER
-  // -----------------------------
-  const startTimer = (h: string, m: string, s: string) => {
+  // Schedule Timer Notification
+  async function scheduleEndNotification(timestamp: number) {
+    const trigger: TimestampTrigger = {
+      type: TriggerType.TIMESTAMP,
+      timestamp,
+    };
+    await notifee.createTriggerNotification(
+      {
+        title: 'Timer Finished',
+        body: `Total Earned: $${earnedFinish}`,
+        android: {
+          channelId: 'timer',
+          pressAction: { id: 'default' },
+        },
+      },
+      trigger
+    );
+  }
+
+  // Start Timer
+  const startTimer = async (h: string, m: string, s: string) => {
+    // Cancel any old scheduled notifications
+    await notifee.cancelTriggerNotifications();
+    await notifee.cancelAllNotifications();
+
     const total =
       Number(h) * 3600 +
       Number(m) * 60 +
       Number(s);
-
     setTotalSeconds(total);
     setRemaining(total);
-
     const now = Date.now();
-    setStartTime(now);
-    setFinishTime(now + total * 1000);
+    const end = now + total * 1000;
 
+    setFinishTime(end);
     setIsPaused(false);
     setPausedAt(null);
+    // Schedule new notification
+    await scheduleEndNotification(end);
   };
-
-  // -----------------------------
-  // ⭐ PAUSE TIMER
-  // -----------------------------
-  const pauseTimer = () => {
+  // Pause Timer
+  const pauseTimer = async () => {
     setIsPaused(true);
     setPausedAt(Date.now());
+    await notifee.cancelTriggerNotifications();
+    await notifee.cancelAllNotifications();
   };
-
-  // -----------------------------
-  // ⭐ RESUME TIMER
-  // -----------------------------
-  const resumeTimer = () => {
+  // Resume Timer
+  const resumeTimer = async () => {
     if (!pausedAt || !finishTime) return;
+
+    // Cancel any old scheduled notifications
+    await notifee.cancelTriggerNotifications();
+    await notifee.cancelAllNotifications();
 
     const now = Date.now();
     const pausedDuration = now - pausedAt;
@@ -79,58 +129,66 @@ export default function App() {
     setFinishTime(newFinish);
     setIsPaused(false);
     setPausedAt(null);
+
+    // Schedule new notification
+    await scheduleEndNotification(newFinish);
   };
-
+  // Timer Interval + Triggers
   useEffect(() => {
-    const interval = setInterval(() => {
+    const interval = setInterval(async () => {
       if (!finishTime || isPaused) return;
-
       const now = Date.now();
       const msRemaining = finishTime - now;
       const newRemaining = Math.max(0, Math.floor(msRemaining / 1000));
-
       setRemaining(newRemaining);
-
+      // Timer Finished
       if (newRemaining === 0) {
+        const earningsPerSecond = Number(rate) / 3600;
+        const earnedFinal = (totalSeconds * earningsPerSecond).toFixed(2);
+        setEarnedFinish(earnedFinish);
+
         clearInterval(interval);
+        if (appState === "active") {
+          // Cancel scheduled notifications
+          await notifee.cancelTriggerNotifications();
+          await notifee.cancelAllNotifications();
+          Vibration.vibrate();
+          Alert.alert("Timer Finished", `Total Earned: $${earnedFinish}`);
+        }
       }
     }, 1000);
-
     return () => clearInterval(interval);
-  }, [finishTime, isPaused]);
-
-
-  // -----------------------------
-  // ⭐ RESET
-  // -----------------------------
-  const resetAll = () => {
+  }, [finishTime, isPaused, appState]);
+  // Reset the timer
+  const resetAll = async () => {
+    // Cancel scheduled notifications
+    await notifee.cancelTriggerNotifications();
+    await notifee.cancelAllNotifications();
+    // Reset user input
     setRate("");
     setHours("00");
     setMinutes("00");
     setSeconds("00");
-
-    setStartTime(null);
+    // Reset time state
     setFinishTime(null);
     setTotalSeconds(0);
     setRemaining(0);
-
     setIsPaused(false);
     setPausedAt(null);
+    setEarnedFinish("0.00");
   };
 
-  // -----------------------------
-  // NAVIGATION
-  // -----------------------------
   return (
     <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false, animation: "fade" }}>
+          {/* Rate Screen */}
           <Stack.Screen name="Rate">
             {(props) => (
               <RateScreen {...props} rate={rate} setRate={setRate} />
             )}
           </Stack.Screen>
-
+          {/* Timer Setup Screen */}
           <Stack.Screen name="Setup">
             {(props) => (
               <TimerSetupScreen
@@ -145,19 +203,16 @@ export default function App() {
               />
             )}
           </Stack.Screen>
-
+          {/* Timer Running Screen */}
           <Stack.Screen name="Running">
             {(props) => (
               <TimerRunningScreen
                 {...props}
                 rate={rate}
-                startTime={startTime}
-                finishTime={finishTime}
                 pauseTimer={pauseTimer}
                 resumeTimer={resumeTimer}
                 totalSeconds={totalSeconds}
                 remaining={remaining}
-                setRemaining={setRemaining}
                 isPaused={isPaused}
                 resetAll={resetAll}
               />
