@@ -1,6 +1,5 @@
-import { Vibration } from "react-native";
 import { useState, useRef, useEffect } from "react";
-import { Animated } from "react-native";
+import { Animated, Vibration } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import notifee, { TriggerType, TimestampTrigger } from '@notifee/react-native';
@@ -10,7 +9,7 @@ import TimerRunningScreen from "./src/screens/TimerRunningScreen";
 const Stack = createNativeStackNavigator();
 
 export default function App() {
-  // App startup fade animation
+  // Fade-in on app launch
   const fadeAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -20,7 +19,7 @@ export default function App() {
     }).start();
   }, []);
 
-  // Setup notification channel
+  // Setup Notification channel
   useEffect(() => {
     async function setup() {
       await notifee.requestPermission();
@@ -32,25 +31,24 @@ export default function App() {
     }
     setup();
   }, []);
-  
-  // Rate input
-  const [rate, setRate] = useState("");
-  // Timer input
+
+  // User input (rate/time)
+  const [rate, setRate] = useState(""); // Empty so placeholder can set '$0.00' by default
   const [hours, setHours] = useState("00");
   const [minutes, setMinutes] = useState("00");
   const [seconds, setSeconds] = useState("00");
-  // Timer engine state
+  // Timer engine variables
   const [finishTime, setFinishTime] = useState<number | null>(null);
   const [totalSeconds, setTotalSeconds] = useState(0);
   const [remaining, setRemaining] = useState(0);
-  // Pause/resume
+  // Pause/resume variables
   const [isPaused, setIsPaused] = useState(false);
   const [pausedAt, setPausedAt] = useState<number | null>(null);
   // Notification variables
   const [hasFired, setHasFired] = useState(false);
   const [finalEarnings, setFinalEarnings] = useState('0.00');
 
-  // Schedule Timer Notification
+  // Schedule Timer Finished Notification 
   async function scheduleEndNotification(timestamp: number, earnings: string) {
     const trigger: TimestampTrigger = {
       type: TriggerType.TIMESTAMP,
@@ -71,7 +69,7 @@ export default function App() {
 
   // Start Timer
   const startTimer = async (h: string, m: string, s: string) => {
-    // Cancel old scheduled notifications
+    // Cancel any scheduled notifications
     await notifee.cancelTriggerNotifications();
     await notifee.cancelAllNotifications();
     // Get remaining seconds till timer finished
@@ -98,44 +96,26 @@ export default function App() {
   const pauseTimer = async () => {
     setIsPaused(true);
     setPausedAt(Date.now());
+    // Cancel any scheduled notifications
     await notifee.cancelTriggerNotifications();
     await notifee.cancelAllNotifications();
   };
   // Resume Timer
   const resumeTimer = async () => {
     if (!pausedAt || !finishTime) return;
-    // Cancel old scheduled notifications
+    // Cancel any old scheduled notifications
     await notifee.cancelTriggerNotifications();
     await notifee.cancelAllNotifications();
-    // Update finish time
+    // Update the new finish time
     const now = Date.now();
     const pausedDuration = now - pausedAt;
     const newFinish = finishTime + pausedDuration;
     setFinishTime(newFinish);
     setIsPaused(false);
     setPausedAt(null);
-    // Schedule new notification
+    // Schedule a new timer finished notification
     await scheduleEndNotification(newFinish, finalEarnings);
   };
-  // Timer Interval + Triggers
-  useEffect(() => {
-    if (!finishTime || isPaused) return;
-      const runTick = () => {
-        if (!finishTime || isPaused) return;
-        const now = Date.now();
-        const msRemaining = finishTime - now;
-        const newRemaining = Math.max(0, Math.ceil(msRemaining / 1000));
-        setRemaining(newRemaining);
-        if (newRemaining === 0 && !hasFired) {
-          setHasFired(true);
-          Vibration.vibrate(1000);
-          clearInterval(interval); // Stop timer
-        }
-      };
-      runTick(); // Use tick function to run immediately and prevent tick jumps
-      const interval = setInterval(runTick, 1000);
-      return () => clearInterval(interval);
-    }, [finishTime, isPaused]);
   // Reset the timer
   const resetAll = async () => {
     // Cancel any scheduled notifications
@@ -146,7 +126,7 @@ export default function App() {
     setHours("00");
     setMinutes("00");
     setSeconds("00");
-    // Reset time state
+    // Reset time and notification variables
     setFinishTime(null);
     setTotalSeconds(0);
     setRemaining(0);
@@ -155,18 +135,43 @@ export default function App() {
     setHasFired(false);
     setFinalEarnings("0.00");
   };
+  // Timer Interval Function
+  useEffect(() => {
+    if (!finishTime || isPaused) return;
+    // Run every second
+    const runTick = () => {
+      if (!finishTime || isPaused) return;
+      const now = Date.now();
+      const msRemaining = finishTime - now;
+      const newRemaining = Math.max(0, Math.ceil(msRemaining / 1000));
+      setRemaining(newRemaining);
+      if (newRemaining === 0 && !hasFired) {
+        // Fire a vibration only once when the timer is finished
+        setHasFired(true);
+        Vibration.vibrate(1000);
+        clearInterval(interval); // Stop the timer
+      }
+    };
+    runTick(); // Use runTick to run immediately and prevent tick jumps
+    const interval = setInterval(runTick, 1000);
+    return () => clearInterval(interval);
+  }, [finishTime, isPaused]);
 
   return (
     <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false, animation: "fade" }}>
-          {/* Rate Screen */}
+          {/* 1. Rate Screen */}
           <Stack.Screen name="Rate">
             {(props) => (
-              <RateScreen {...props} rate={rate} setRate={setRate} />
+              <RateScreen
+                {...props}
+                rate={rate}
+                setRate={setRate}
+              />
             )}
           </Stack.Screen>
-          {/* Timer Setup Screen */}
+          {/* 2. Timer Setup Screen */}
           <Stack.Screen name="Setup">
             {(props) => (
               <TimerSetupScreen
@@ -181,17 +186,17 @@ export default function App() {
               />
             )}
           </Stack.Screen>
-          {/* Timer Running Screen */}
+          {/* 3. Timer Running Screen */}
           <Stack.Screen name="Running">
             {(props) => (
               <TimerRunningScreen
                 {...props}
                 rate={rate}
-                pauseTimer={pauseTimer}
-                resumeTimer={resumeTimer}
                 totalSeconds={totalSeconds}
                 remaining={remaining}
                 isPaused={isPaused}
+                pauseTimer={pauseTimer}
+                resumeTimer={resumeTimer}
                 resetAll={resetAll}
               />
             )}
