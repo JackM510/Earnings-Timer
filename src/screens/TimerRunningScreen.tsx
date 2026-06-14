@@ -52,22 +52,24 @@ export default function TimerRunningScreen({
                 strokeWidth="12"
                 fill="none"
                 />
-                <Circle
-                cx="100"
-                cy="100"
-                r="90"
-                stroke="lightgreen"
-                strokeWidth="12"
-                fill="none"
-                strokeDasharray={2 * Math.PI * 90}
-                strokeDashoffset={
-                    (2 * Math.PI * 90) *
-                    (remainingSeconds / (totalSeconds || 1))
-                }
-                strokeLinecap="round"
-                rotation="-90"
-                origin="100, 100"
-                />
+                {remaining !== totalSeconds && (
+                    <Circle
+                        cx="100"
+                        cy="100"
+                        r="90"
+                        stroke="lightgreen"
+                        strokeWidth="12"
+                        fill="none"
+                        strokeDasharray={2 * Math.PI * 90}
+                        strokeDashoffset={
+                            (2 * Math.PI * 90) *
+                            (remainingSeconds / (totalSeconds || 1))
+                        }
+                        strokeLinecap="round"
+                        rotation="-90"
+                        origin="100, 100"
+                        />
+                )} 
             </Svg>
 
             <View style={{ position: "absolute", top: 80 }}>

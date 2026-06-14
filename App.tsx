@@ -47,6 +47,7 @@ export default function App() {
   const [isPaused, setIsPaused] = useState(false);
   const [pausedAt, setPausedAt] = useState<number | null>(null);
   // Notification variables
+  const [hasFired, setHasFired] = useState(false);
   const [finalEarnings, setFinalEarnings] = useState('0.00');
 
   // Schedule Timer Notification
@@ -68,7 +69,7 @@ export default function App() {
     );
   }
 
-  // ----- Start Timer -----
+  // Start Timer
   const startTimer = async (h: string, m: string, s: string) => {
     // Cancel old scheduled notifications
     await notifee.cancelTriggerNotifications();
@@ -86,7 +87,7 @@ export default function App() {
     setFinishTime(end);
     setIsPaused(false);
     setPausedAt(null);
-
+    setHasFired(false);
     // Calculate final earnings for notifications
     const earningsPerSecond = Number(rate) / 3600;
     const totalEarned = (total * earningsPerSecond).toFixed(2);
@@ -118,21 +119,23 @@ export default function App() {
   };
   // Timer Interval + Triggers
   useEffect(() => {
-    const interval = setInterval(async () => {
-      if (!finishTime || isPaused) return;
-      const now = Date.now();
-      const msRemaining = finishTime - now;
-      const newRemaining = Math.max(0, Math.floor(msRemaining / 1000));
-      setRemaining(newRemaining);
-      
-      // Timer Finished
-      if (newRemaining === 0) {
-        clearInterval(interval);
-        Vibration.vibrate(1000);
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [finishTime, isPaused]);
+    if (!finishTime || isPaused) return;
+      const runTick = () => {
+        if (!finishTime || isPaused) return;
+        const now = Date.now();
+        const msRemaining = finishTime - now;
+        const newRemaining = Math.max(0, Math.ceil(msRemaining / 1000));
+        setRemaining(newRemaining);
+        if (newRemaining === 0 && !hasFired) {
+          setHasFired(true);
+          Vibration.vibrate(1000);
+          clearInterval(interval); // Stop timer
+        }
+      };
+      runTick(); // Use tick function to run immediately and prevent tick jumps
+      const interval = setInterval(runTick, 1000);
+      return () => clearInterval(interval);
+    }, [finishTime, isPaused]);
   // Reset the timer
   const resetAll = async () => {
     // Cancel any scheduled notifications
@@ -149,6 +152,7 @@ export default function App() {
     setRemaining(0);
     setIsPaused(false);
     setPausedAt(null);
+    setHasFired(false);
     setFinalEarnings("0.00");
   };
 
