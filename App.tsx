@@ -1,10 +1,9 @@
-import { AppState, Alert, Vibration } from "react-native";
+import { Vibration } from "react-native";
 import { useState, useRef, useEffect } from "react";
 import { Animated } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import notifee, { TriggerType, TimestampTrigger } from '@notifee/react-native';
-
 import RateScreen from "./src/screens/RateScreen";
 import TimerSetupScreen from "./src/screens/TimerSetupScreen";
 import TimerRunningScreen from "./src/screens/TimerRunningScreen";
@@ -28,28 +27,12 @@ export default function App() {
       await notifee.createChannel({
         id: 'timer',
         name: 'Timer Notifications',
+        importance: 4,
       });
     }
     setup();
   }, []);
-
-  // Track App state foreground or background
-  const [appState, setAppState] = useState(AppState.currentState);
-  useEffect(() => {
-    const sub = AppState.addEventListener("change", next => {
-      setAppState(next);
-    });
-    return () => sub.remove();
-  }, []);
   
-  // Cancel scheduled notifications if App state actice
-  useEffect(() => {
-    if (appState === "active") {
-      notifee.cancelTriggerNotifications();
-      notifee.cancelAllNotifications();
-    }
-  }, [appState]);
-
   // Rate input
   const [rate, setRate] = useState("");
   // Timer input
@@ -63,12 +46,11 @@ export default function App() {
   // Pause/resume
   const [isPaused, setIsPaused] = useState(false);
   const [pausedAt, setPausedAt] = useState<number | null>(null);
-  // Total Earned
-  const [earnedFinish, setEarnedFinish] = useState('0.00');
-
+  // Notification variables
+  const [finalEarnings, setFinalEarnings] = useState('0.00');
 
   // Schedule Timer Notification
-  async function scheduleEndNotification(timestamp: number) {
+  async function scheduleEndNotification(timestamp: number, earnings: string) {
     const trigger: TimestampTrigger = {
       type: TriggerType.TIMESTAMP,
       timestamp,
@@ -76,7 +58,7 @@ export default function App() {
     await notifee.createTriggerNotification(
       {
         title: 'Timer Finished',
-        body: `Total Earned: $${earnedFinish}`,
+        body: `Total Earned: $${earnings}`,
         android: {
           channelId: 'timer',
           pressAction: { id: 'default' },
@@ -86,26 +68,30 @@ export default function App() {
     );
   }
 
-  // Start Timer
+  // ----- Start Timer -----
   const startTimer = async (h: string, m: string, s: string) => {
-    // Cancel any old scheduled notifications
+    // Cancel old scheduled notifications
     await notifee.cancelTriggerNotifications();
     await notifee.cancelAllNotifications();
-
+    // Get remaining seconds till timer finished
     const total =
       Number(h) * 3600 +
       Number(m) * 60 +
       Number(s);
     setTotalSeconds(total);
     setRemaining(total);
+    // Set finish time
     const now = Date.now();
     const end = now + total * 1000;
-
     setFinishTime(end);
     setIsPaused(false);
     setPausedAt(null);
-    // Schedule new notification
-    await scheduleEndNotification(end);
+
+    // Calculate final earnings for notifications
+    const earningsPerSecond = Number(rate) / 3600;
+    const totalEarned = (total * earningsPerSecond).toFixed(2);
+    setFinalEarnings(totalEarned);
+    await scheduleEndNotification(end, totalEarned);
   };
   // Pause Timer
   const pauseTimer = async () => {
@@ -117,21 +103,18 @@ export default function App() {
   // Resume Timer
   const resumeTimer = async () => {
     if (!pausedAt || !finishTime) return;
-
-    // Cancel any old scheduled notifications
+    // Cancel old scheduled notifications
     await notifee.cancelTriggerNotifications();
     await notifee.cancelAllNotifications();
-
+    // Update finish time
     const now = Date.now();
     const pausedDuration = now - pausedAt;
     const newFinish = finishTime + pausedDuration;
-
     setFinishTime(newFinish);
     setIsPaused(false);
     setPausedAt(null);
-
     // Schedule new notification
-    await scheduleEndNotification(newFinish);
+    await scheduleEndNotification(newFinish, finalEarnings);
   };
   // Timer Interval + Triggers
   useEffect(() => {
@@ -141,27 +124,18 @@ export default function App() {
       const msRemaining = finishTime - now;
       const newRemaining = Math.max(0, Math.floor(msRemaining / 1000));
       setRemaining(newRemaining);
+      
       // Timer Finished
       if (newRemaining === 0) {
-        const earningsPerSecond = Number(rate) / 3600;
-        const earnedFinal = (totalSeconds * earningsPerSecond).toFixed(2);
-        setEarnedFinish(earnedFinish);
-
         clearInterval(interval);
-        if (appState === "active") {
-          // Cancel scheduled notifications
-          await notifee.cancelTriggerNotifications();
-          await notifee.cancelAllNotifications();
-          Vibration.vibrate();
-          Alert.alert("Timer Finished", `Total Earned: $${earnedFinish}`);
-        }
+        Vibration.vibrate(1000);
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, [finishTime, isPaused, appState]);
+  }, [finishTime, isPaused]);
   // Reset the timer
   const resetAll = async () => {
-    // Cancel scheduled notifications
+    // Cancel any scheduled notifications
     await notifee.cancelTriggerNotifications();
     await notifee.cancelAllNotifications();
     // Reset user input
@@ -175,7 +149,7 @@ export default function App() {
     setRemaining(0);
     setIsPaused(false);
     setPausedAt(null);
-    setEarnedFinish("0.00");
+    setFinalEarnings("0.00");
   };
 
   return (
