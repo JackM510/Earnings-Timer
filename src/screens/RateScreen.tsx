@@ -3,19 +3,18 @@ import { styles } from "../styles/global";
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 type RateScreenProps = {
-  navigation: any; // will refine later
+  navigation: any;
   rate: string;
   setRate: (value: string) => void;
 };
 
 export default function RateScreen({ navigation, rate, setRate }: RateScreenProps) {
   const isRateValid = rate !== "" && Number(rate) > 0;
-
   return (
     <View style={styles.container}>
       <View style={styles.content}>
         <Text style={styles.heading}>Hourly Rate</Text>
-
+        {/* Rate input */}
         <TextInput
           style={styles.input}
           keyboardType="numeric"
@@ -34,7 +33,7 @@ export default function RateScreen({ navigation, rate, setRate }: RateScreenProp
             }
           }}
         />
-
+        {/* Next button */}
         <TouchableOpacity
           style={[styles.button, styles.bgBlue, !isRateValid && styles.buttonDisabled]}
           disabled={!isRateValid}
