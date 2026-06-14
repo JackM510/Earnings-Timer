@@ -3,9 +3,9 @@ import { StyleSheet } from "react-native";
 export const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
         alignItems: 'center',
         justifyContent: 'center',
+        backgroundColor: '#fff',
     },
     content: {
         width: '100%',
@@ -28,19 +28,19 @@ export const styles = StyleSheet.create({
         fontSize: 18,
     },
     input: {
-        paddingTop: 16,
-        paddingBottom: 0,
         fontSize: 24,
         color: '#000',
         textAlign: 'center',
-        textAlignVertical: 'center',  
+        textAlignVertical: 'center',
+        paddingTop: 16,
+        paddingBottom: 0,
     },
     button: {
         flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 20,
         padding: 16,
         borderRadius: '50%',
-        marginTop: 20,
-        alignItems: 'center',
     },
     bgGray: {
         backgroundColor: 'darkgray',
