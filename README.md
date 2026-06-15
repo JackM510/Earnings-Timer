@@ -5,16 +5,16 @@ A React Native earnings timer with start, pause, resume, reset, and real‑time 
 
 ### Screenshots
 <div style="display: flex; flex-wrap: wrap; gap: 16px;">
-  <img src="demo/1-RateInput.jpg" width="160" />
-  <img src="demo/2-RateInput(2).jpg" width="160" />
-  <img src="demo/3-TimerSetup.jpg" width="160" />
-  <img src="demo/4-TimerSetup(2).jpg" width="160" />
-  <img src="demo/5-TimerRunning.jpg" width="160" />
-  <img src="demo/6-TimerFinished.jpg" width="160" />
+  <img src="demo/1-RateInput.jpg" width="180" />
+  <img src="demo/2-RateInput(2).jpg" width="180" />
+  <img src="demo/3-TimerSetup.jpg" width="180" />
+  <img src="demo/4-TimerSetup(2).jpg" width="180" />
+  <img src="demo/5-TimerRunning.jpg" width="180" />
+  <img src="demo/6-TimerFinished.jpg" width="180" />
 </div>
 
 ### Video
-<img src="demo/Timer-Demo.gif" width="200" />
+<img src="demo/Timer-Demo.gif" width="220" />
 
 ## Features
 - Start, pause, resume and reset the timer
