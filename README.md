@@ -4,15 +4,15 @@ A React Native earnings timer with start, pause, resume, and real‑time income 
 ## Demo
 
 ### Screenshots
-![Screenshot 1 – Rate Input](demo/Screenshot1 - Rate Input.jpg)
-![Screenshot 2 – Rate Input](demo/Screenshot2 - Rate Input(2).jpg)
-![Screenshot 3 – Timer Setup](demo/Screenshot3 - Timer Setup.jpg)
-![Screenshot 4 – Timer Setup](demo/Screenshot4 - Timer Setup(2).jpg)
-![Screenshot 5 – Timer Running](demo/Screenshot5 - Timer Running.jpg)
-![Screenshot 6 – Timer Finished](demo/Screenshot6 - Timer Finished.jpg)
+![Screenshot 1 – Rate Input](demo/1-RateInput.jpg)
+![Screenshot 2 – Rate Input](demo/2-RateInput(2).jpg)
+![Screenshot 3 – Timer Setup](demo/3-TimerSetup.jpg)
+![Screenshot 4 – Timer Setup](demo/4-TimerSetup(2).jpg)
+![Screenshot 5 – Timer Running](demo/5-TimerRunning.jpg)
+![Screenshot 6 – Timer Finished](demo/6-TimerFinished.jpg)
 
 ### Video
-[Timer Demo](demo/Timer-Demo.mp4)
+[Timer Demo](demo/Timer-Demo.gif)
 
 ## Features
 - Start, pause, resume and reset the timer
