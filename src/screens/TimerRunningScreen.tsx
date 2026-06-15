@@ -88,7 +88,12 @@ export default function TimerRunningScreen({
                 <View style={styles.row}>
                     {/* Pause/Resume Button */}
                     <TouchableOpacity
-                        style={[styles.button, isPaused ? styles.bgBlue : styles.bgGray,]}
+                        style={[
+                            styles.button, 
+                            isPaused ? styles.bgBlue : styles.bgGray,
+                            remaining === 0 && styles.buttonDisabled
+                        ]}
+                        disabled={remaining === 0}
                         onPress={togglePause}
                     >
                         <MaterialIcons
